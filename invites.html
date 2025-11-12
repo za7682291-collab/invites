@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Custom Invitation Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <!-- html2canvas for PNG export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5Gk3s6a2gjm9y6pJ0V7xw3kqTg2b+6k6qv3YzYgk5B4jv7xE3o8cKp+6kzQb9m1p9z0kFQ6Qq3Z9nX9Y2xg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#f59e0b; --text:#f8fafc; --muted:#9ca3af;
+      --radius:14px; --glass: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Montserrat,system-ui,Arial;background:linear-gradient(180deg,#071228 0%, #071a2b 100%);color:var(--text);margin:0;padding:28px}
+    .app{display:grid;grid-template-columns:360px 1fr;gap:22px;align-items:start;max-width:1200px;margin:0 auto}
+
+    /* Sidebar */
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;backdrop-filter: blur(6px);box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .panel h2{font-size:18px;margin:0 0 12px;font-weight:700}
+    .field{margin-bottom:10px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=text], input[type=date], input[type=time], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);outline:none}
+    textarea{min-height:66px;resize:vertical}
+    .row{display:flex;gap:8px}
+    .btn{display:inline-block;padding:8px 12px;border-radius:10px;background:var(--accent);color:#071022;font-weight:700;border:none;cursor:pointer}
+    .muted{font-size:13px;color:var(--muted)}
+    .preset-grid{display:flex;gap:8px;margin-bottom:10px}
+    .preset{flex:1;padding:8px;border-radius:8px;text-align:center;cursor:pointer;border:1px dashed rgba(255,255,255,0.03)}
+
+    /* Preview */
+    .preview-wrap{display:flex;gap:14px;flex-direction:column}
+    .inv-card{width:100%;max-width:820px;margin:0 auto;padding:30px;border-radius:18px;background:linear-gradient(180deg,var(--card) 0%, rgba(255,255,255,0.01) 100%);box-shadow:0 12px 40px rgba(2,6,23,0.6);position:relative;overflow:hidden}
+    .inv-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.14;filter:blur(0px)}
+    .inv-inner{position:relative;z-index:2;display:flex;align-items:center;gap:20px}
+    .left{flex:1}
+    .right{flex:1;text-align:right}
+    h1.title{font-family:'Playfair Display',serif;margin:0;font-size:36px;letter-spacing:0.6px}
+    p.subtitle{margin:6px 0 14px;color:var(--muted)}
+    .meta{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start}
+    .meta .chip{background:var(--glass);padding:8px 12px;border-radius:999px;font-weight:600;color:var(--text);font-size:13px;border:1px solid rgba(255,255,255,0.03)}
+    .actions{display:flex;gap:10px;align-items:center}
+
+    /* Responsive */
+    @media (max-width:900px){.app{grid-template-columns:1fr;}.right{text-align:left}.inv-card{padding:22px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel" id="panel">
+      <h2>Invitation Builder</h2>
+      <div class="field">
+        <label>Title</label>
+        <input id="title" type="text" value="You're Invited!" />
+      </div>
+      <div class="field">
+        <label>Subtitle / Tagline</label>
+        <input id="subtitle" type="text" value="Join us for a special celebration" />
+      </div>
+      <div class="field row">
+        <div style="flex:1"><label>Date</label><input id="date" type="date" /></div>
+        <div style="width:120px"><label>Time</label><input id="time" type="time" /></div>
+      </div>
+      <div class="field">
+        <label>Venue</label>
+        <input id="venue" type="text" value="Cabello's Residence, Sitio Prenza" />
+      </div>
+      <div class="field">
+        <label>Description (optional)</label>
+        <textarea id="desc">Bring your smiles — casual dress. Food and drinks provided.</textarea>
+      </div>
+
+      <div class="field">
+        <label>Background image</label>
+        <input id="bgfile" type="file" accept="image/*" />
+        <div class="muted" style="margin-top:6px">Or leave blank for gradient color.</div>
+      </div>
+
+      <div class="field">
+        <label>Theme presets</label>
+        <div class="preset-grid">
+          <div class="preset" data-theme="elegant">Elegant</div>
+          <div class="preset" data-theme="ticket">Ticket</div>
+          <div class="preset" data-theme="playful">Playful</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Accent color</label>
+        <input id="accent" type="color" value="#f59e0b" />
+      </div>
+      <div class="field">
+        <label>Background color</label>
+        <input id="bgcolor" type="color" value="#071a2b" />
+      </div>
+      <div class="field">
+        <label>Font style</label>
+        <select id="font">
+          <option value="mont">Montserrat (Modern)</option>
+          <option value="play">Playfair Display (Elegant)</option>
+        </select>
+      </div>
+
+      <div class="field row" style="margin-top:8px">
+        <button class="btn" id="downloadPNG">Download PNG</button>
+        <button class="btn" id="downloadHTML">Download HTML</button>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+
+      <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+        Tip: Edit the fields, pick a background image, then use "Download PNG" to share on social.
+      </div>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="inv-card" id="invCard">
+        <div class="inv-bg" id="invBg"></div>
+        <div class="inv-inner">
+          <div class="left">
+            <h1 class="title" id="pTitle">You're Invited!</h1>
+            <p class="subtitle" id="pSubtitle">Join us for a special celebration</p>
+            <div class="meta" id="pMeta">
+              <div class="chip" id="pDate">Date • —</div>
+              <div class="chip" id="pTime">Time • —</div>
+              <div class="chip" id="pVenue">Venue • Cabello's Residence</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="actions">
+              <div style="text-align:right">
+                <div style="font-size:13px;color:var(--muted)">DETAILS</div>
+                <div id="pDesc" style="max-width:320px;margin-top:8px;color:var(--text)">Bring your smiles — casual dress. Food and drinks provided.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin-top:8px">Preview — changes apply live</div>
+    </div>
+  </div>
+
+  <script>
+    // Helpers
+    const $ = id => document.getElementById(id);
+    const title = $('title');
+    const subtitle = $('subtitle');
+    const date = $('date');
+    const time = $('time');
+    const venue = $('venue');
+    const desc = $('desc');
+    const invCard = $('invCard');
+    const invBg = $('invBg');
+    const pTitle = $('pTitle');
+    const pSubtitle = $('pSubtitle');
+    const pDate = $('pDate');
+    const pTime = $('pTime');
+    const pVenue = $('pVenue');
+    const pDesc = $('pDesc');
+    const bgfile = $('bgfile');
+    const accent = $('accent');
+    const bgcolor = $('bgcolor');
+    const font = $('font');
+
+    // initialize with today's date/time as example
+    const now = new Date();
+    const iso = now.toISOString().slice(0,10);
+    date.value = iso;
+    time.value = now.toTimeString().slice(0,5);
+
+    function applyAll(){
+      pTitle.textContent = title.value || 'You're Invited!';
+      pSubtitle.textContent = subtitle.value || '';
+      pVenue.textContent = 'Venue • ' + (venue.value || '—');
+      pDesc.textContent = desc.value || '';
+      pDate.textContent = 'Date • ' + (date.value ? new Date(date.value).toLocaleDateString() : '—');
+      pTime.textContent = 'Time • ' + (time.value || '—');
+      document.documentElement.style.setProperty('--accent', accent.value || '#f59e0b');
+      document.documentElement.style.setProperty('--bg', bgcolor.value || '#071a2b');
+      // apply background as gradient using bgcolor if no image
+      invBg.style.background = '';
+      invCard.style.background = 'linear-gradient(180deg,'+shadeColor(bgcolor.value,8)+' 0%, rgba(255,255,255,0.01) 100%)';
+      if(font.value === 'play'){
+        pTitle.style.fontFamily = "'Playfair Display', serif";
+      } else {
+        pTitle.style.fontFamily = "Montserrat, system-ui, Arial";
+      }
+    }
+
+    // small color shade fn
+    function shadeColor(hex, percent) {
+      // convert #rrggbb
+      hex = hex.replace('#','');
+      const num = parseInt(hex,16);
+      let r = (num >> 16) + percent;
+      let g = ((num >> 8) & 0x00FF) + percent;
+      let b = (num & 0x0000FF) + percent;
+      r = Math.max(Math.min(255,r),0);
+      g = Math.max(Math.min(255,g),0);
+      b = Math.max(Math.min(255,b),0);
+      return '#' + (r<<16 | g<<8 | b).toString(16).padStart(6,'0');
+    }
+
+    // Event listeners
+    [title, subtitle, date, time, venue, desc, accent, bgcolor, font].forEach(el=> el.addEventListener('input', applyAll));
+
+    // Presets
+    document.querySelectorAll('.preset').forEach(p=> p.addEventListener('click', ()=>{
+      const t = p.getAttribute('data-theme');
+      if(t==='elegant'){
+        accent.value = '#d946ef'; bgcolor.value = '#071028'; font.value='play';
+        invBg.style.background = '';
+      } else if(t==='ticket'){
+        accent.value = '#06b6d4'; bgcolor.value = '#071a2b'; font.value='mont';
+        invBg.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.00) 100%)';
+      } else {
+        accent.value = '#f97316'; bgcolor.value = '#081b14'; font.value='mont';
+        invBg.style.background = '';
+      }
+      applyAll();
+    }));
+
+    // Background file
+    bgfile.addEventListener('change', (ev)=>{
+      const f = ev.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        invBg.style.backgroundImage = `url(${e.target.result})`;
+        invBg.style.opacity = '0.3';
+        invBg.style.filter = 'brightness(0.9)';
+        invBg.style.backgroundSize = 'cover';
+        invBg.style.backgroundPosition = 'center';
+      };
+      reader.readAsDataURL(f);
+    });
+
+    // Download PNG via html2canvas
+    $('downloadPNG').addEventListener('click', ()=>{
+      // temporarily ensure card is full-width for better resolution
+      const originalWidth = invCard.style.width;
+      html2canvas(invCard, {scale:2, useCORS:true}).then(canvas=>{
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = (title.value || 'invitation').replace(/[^a-z0-9_-]/gi,'_') + '.png';
+        a.click();
+      }).catch(err=>{
+        alert('PNG export failed. Try using the "Download HTML" option and capture a screenshot instead.');
+        console.error(err);
+      });
+    });
+
+    // Download HTML file (export current config inside single-file)
+    $('downloadHTML').addEventListener('click', ()=>{
+      const payload = {
+        title: title.value, subtitle: subtitle.value, date: date.value, time: time.value, venue: venue.value, desc: desc.value,
+        accent: accent.value, bgcolor: bgcolor.value, font: font.value
+      };
+      const html = generateStandaloneHTML(payload, invBg.style.backgroundImage || '');
+      const blob = new Blob([html], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (title.value || 'invitation').replace(/[^a-z0-9_-]/gi,'_') + '.html';
+      a.click();
+    });
+
+    // Reset
+    $('reset').addEventListener('click', ()=>{
+      title.value = "You're Invited!";
+      subtitle.value = 'Join us for a special celebration';
+      venue.value = "Cabello's Residence, Sitio Prenza";
+      desc.value = 'Bring your smiles — casual dress. Food and drinks provided.';
+      accent.value = '#f59e0b'; bgcolor.value = '#071a2b'; font.value='mont';
+      invBg.style.backgroundImage = '';
+      applyAll();
+    });
+
+    function generateStandaloneHTML(data, bgImage){
+      const safe = v => (v||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const bgImg = bgImage ? `style="background-image: ${bgImage}; background-size:cover; background-position:center; opacity:0.3;"` : '';
+      return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safe(data.title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;padding:20px;background:${data.bgcolor};font-family:Montserrat,system-ui,Arial;color:#fff}
+.card{max-width:820px;padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(0,0,0,0.28),rgba(0,0,0,0.12));position:relative}
+.bg{position:absolute;inset:0;filter:blur(0)}.title{font-family:${data.font==='play' ? "'Playfair Display', serif" : 'Montserrat, system-ui, Arial'};font-size:36px}
+.chip{display:inline-block;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.03);margin-right:8px}
+</style></head><body>
+<div class="card">
+  <div class="bg" ${bgImg}></div>
+  <h1 class="title">${safe(data.title)}</h1>
+  <p>${safe(data.subtitle)}</p>
+  <div>
+    <span class="chip">Date • ${safe(data.date)}</span>
+    <span class="chip">Time • ${safe(data.time)}</span>
+    <span class="chip">Venue • ${safe(data.venue)}</span>
+  </div>
+  <p style="margin-top:16px">${safe(data.desc)}</p>
+</div>
+</body></html>`;
+    }
+
+    // initial apply
+    applyAll();
+  </script>
+</body>
+</html>
